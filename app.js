@@ -1,9 +1,13 @@
-// ✅ Import Firebase SDKs
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
-import { getFirestore, collection, addDoc, query, where, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+import {
+  getAuth, onAuthStateChanged,
+  createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut
+} from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+import {
+  getFirestore, collection, addDoc, query, where, orderBy, onSnapshot, getDocs, serverTimestamp, limit
+} from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
-// ✅ Replace with your Firebase config
+// ---------------- Firebase Config ----------------
 const firebaseConfig = {
     apiKey: "AIzaSyBwETJ84D2dQ9gqpPI6xHfV419GAutxjyE",
     authDomain: "anonymous-txt.firebaseapp.com",
@@ -14,149 +18,128 @@ const firebaseConfig = {
     measurementId: "G-FLXL8JY7QD"
   };
   
+const ADMIN_UID = "ItSmZryZgkcs6XEdmmpigz9ycih2";
 
-// ✅ Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// ✅ Replace with your Admin UID
-const ADMIN_UID = "ItSmZryZgkcs6XEdmmpigz9ycih2";
+// Elements
+const yearEl = document.getElementById("year");
+yearEl.textContent = new Date().getFullYear();
 
-// ---------------------------------------------------
-// 🔹 Sign Up
-// ---------------------------------------------------
-document.getElementById("signupForm").addEventListener("submit", async (e) => {
+const authSection = document.getElementById("authSection");
+const dashboardSection = document.getElementById("dashboardSection");
+const sendSection = document.getElementById("sendSection");
+const adminSection = document.getElementById("adminSection");
+
+const signupBtn = document.getElementById("signupBtn");
+const loginBtn = document.getElementById("loginBtn");
+const emailInput = document.getElementById("email");
+const passwordInput = document.getElementById("password");
+const displayNameInput = document.getElementById("displayName");
+const authError = document.getElementById("authError");
+
+const userName = document.getElementById("userName");
+const shareLinkInput = document.getElementById("shareLink");
+const copyLinkBtn = document.getElementById("copyLinkBtn");
+const messageList = document.getElementById("messageList");
+const emptyState = document.getElementById("emptyState");
+
+const sendForm = document.getElementById("sendForm");
+const messageInput = document.getElementById("messageInput");
+const sendStatus = document.getElementById("sendStatus");
+const sendError = document.getElementById("sendError");
+
+const adminSearch = document.getElementById("adminSearch");
+const refreshAdmin = document.getElementById("refreshAdmin");
+const adminList = document.getElementById("adminList");
+const adminEmpty = document.getElementById("adminEmpty");
+
+// ---------- Signup ----------
+signupBtn.addEventListener("click", async (e)=>{
   e.preventDefault();
-  const email = e.target.email.value;
-  const password = e.target.password.value;
-
-  try {
-    await createUserWithEmailAndPassword(auth, email, password);
-    alert("Account created successfully!");
-  } catch (err) {
-    alert("Error: " + err.message);
-  }
+  authError.textContent = "";
+  try{
+    const cred = await createUserWithEmailAndPassword(auth,emailInput.value,passwordInput.value);
+    location.hash="";
+  }catch(err){ authError.textContent = err.message; }
 });
 
-// ---------------------------------------------------
-// 🔹 Login
-// ---------------------------------------------------
-document.getElementById("loginForm").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const email = e.target.email.value;
-  const password = e.target.password.value;
-
-  try {
-    await signInWithEmailAndPassword(auth, email, password);
-    alert("Login successful!");
-  } catch (err) {
-    alert("Error: " + err.message);
-  }
+// ---------- Login ----------
+loginBtn.addEventListener("click", async ()=>{
+  authError.textContent="";
+  try{ await signInWithEmailAndPassword(auth,emailInput.value,passwordInput.value); location.hash=""; }
+  catch(err){ authError.textContent = err.message; }
 });
 
-// ---------------------------------------------------
-// 🔹 Logout
-// ---------------------------------------------------
-document.getElementById("logoutBtn").addEventListener("click", async () => {
-  await signOut(auth);
-  alert("Logged out successfully!");
-});
+// ---------- Logout ----------
+onAuthStateChanged(auth,user=>{
+  if(user){
+    showOnly(dashboardSection);
+    userName.textContent = user.email;
+    const link = `${location.origin}${location.pathname}#/u/${user.uid}`;
+    shareLinkInput.value = link;
 
-// ---------------------------------------------------
-// 🔹 Listen to Auth State
-// ---------------------------------------------------
-onAuthStateChanged(auth, (user) => {
-  if (user) {
-    document.getElementById("authSection").style.display = "none";
-    document.getElementById("dashboard").style.display = "block";
+    copyLinkBtn.onclick = ()=>{navigator.clipboard.writeText(link);};
 
-    // Show shareable link
-    const link = `${window.location.origin}${window.location.pathname}#/u/${user.uid}`;
-    document.getElementById("shareLink").textContent = link;
-    document.getElementById("shareLink").href = link;
-
-    // Load inbox
-    if (user.uid === ADMIN_UID) {
-      loadAdminInbox();
-    } else {
-      loadUserInbox(user);
-    }
-  } else {
-    document.getElementById("authSection").style.display = "block";
-    document.getElementById("dashboard").style.display = "none";
-  }
-});
-
-// ---------------------------------------------------
-// 🔹 Load Normal User Inbox
-// ---------------------------------------------------
-function loadUserInbox(user) {
-  const messagesRef = collection(db, "messages");
-  const q = query(messagesRef, where("recipientId", "==", user.uid), orderBy("timestamp", "desc"));
-
-  onSnapshot(q, (snapshot) => {
-    const inbox = document.getElementById("inbox");
-    inbox.innerHTML = "";
-    snapshot.forEach((doc) => {
-      const msg = doc.data();
-      const p = document.createElement("p");
-      p.textContent = msg.text; // user sees only text
-      inbox.appendChild(p);
+    // Load user inbox
+    const qInbox = query(collection(db,"messages"),where("toUid","==",user.uid),orderBy("createdAt","desc"));
+    onSnapshot(qInbox,snap=>{
+      messageList.innerHTML="";
+      if(snap.empty){emptyState.classList.remove("hidden");return;}
+      emptyState.classList.add("hidden");
+      snap.forEach(docSnap=>{
+        const m = docSnap.data();
+        const li=document.createElement("li");
+        li.textContent = m.content;
+        messageList.appendChild(li);
+      });
     });
+  } else { showOnly(authSection); }
+});
+
+// ---------- Send Message ----------
+sendForm.addEventListener("submit",async(e)=>{
+  e.preventDefault();
+  sendStatus.textContent="";
+  sendError.textContent="";
+  try{
+    const toUid = location.hash.split("/u/")[1];
+    const content = messageInput.value.trim();
+    if(!content) throw new Error("Message empty");
+    await addDoc(collection(db,"messages"),{toUid,content,createdAt:serverTimestamp()});
+    messageInput.value="";
+    sendStatus.textContent="Message sent ✅";
+  }catch(err){ sendError.textContent=err.message; }
+});
+
+// ---------- Admin ----------
+async function loadAdmin(){
+  adminList.innerHTML="";
+  adminEmpty.classList.add("hidden");
+  const u = auth.currentUser;
+  if(!u || u.uid!==ADMIN_UID){adminList.innerHTML="<li>Access denied</li>"; return;}
+  const snap = await getDocs(query(collection(db,"messages"),orderBy("createdAt","desc"),limit(100)));
+  if(snap.empty){adminEmpty.classList.remove("hidden");return;}
+  snap.forEach(docSnap=>{
+    const m=docSnap.data();
+    const li=document.createElement("li");
+    li.innerHTML=`To: ${m.toUid} | From: ${m.fromUid||"Anonymous"}<br>${m.content}`;
+    adminList.appendChild(li);
   });
 }
+refreshAdmin.addEventListener("click",loadAdmin);
 
-// ---------------------------------------------------
-// 🔹 Load Admin Inbox
-// ---------------------------------------------------
-function loadAdminInbox() {
-  const messagesRef = collection(db, "messages");
-  const q = query(messagesRef, orderBy("timestamp", "desc"));
-
-  onSnapshot(q, (snapshot) => {
-    const inbox = document.getElementById("inbox");
-    inbox.innerHTML = "";
-    snapshot.forEach((doc) => {
-      const msg = doc.data();
-      const p = document.createElement("p");
-      p.textContent = `To: ${msg.recipientId} | From: ${msg.senderId || "Anonymous"} | Message: ${msg.text}`;
-      inbox.appendChild(p);
-    });
-  });
+// ---------- Utils ----------
+function showOnly(section){
+  [authSection,dashboardSection,sendSection,adminSection].forEach(s=>s.classList.add("hidden"));
+  section.classList.remove("hidden");
 }
 
-// ---------------------------------------------------
-// 🔹 Handle Anonymous Message Sending
-// ---------------------------------------------------
-async function sendAnonymousMessage(recipientId, message) {
-  try {
-    await addDoc(collection(db, "messages"), {
-      recipientId: recipientId,
-      senderId: auth.currentUser ? auth.currentUser.uid : null,
-      text: message,
-      timestamp: serverTimestamp()
-    });
-    alert("Message sent!");
-  } catch (err) {
-    alert("Error sending message: " + err.message);
-  }
-}
-
-// ---------------------------------------------------
-// 🔹 Check if visiting a shared link
-// ---------------------------------------------------
-window.addEventListener("load", () => {
-  if (window.location.hash.startsWith("#/u/")) {
-    const recipientId = window.location.hash.split("/u/")[1];
-    document.getElementById("sendMessageSection").style.display = "block";
-
-    document.getElementById("messageForm").addEventListener("submit", (e) => {
-      e.preventDefault();
-      const message = e.target.message.value;
-      sendAnonymousMessage(recipientId, message);
-      e.target.reset();
-    });
-  }
+// ---------- Route ----------
+window.addEventListener("hashchange",()=>{
+  if(location.hash.startsWith("#/u/")) showOnly(sendSection);
+  else showOnly(dashboardSection);
 });
-
+window.dispatchEvent(new Event("hashchange"));
