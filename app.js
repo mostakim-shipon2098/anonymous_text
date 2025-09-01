@@ -19,7 +19,6 @@ const firebaseConfig = {
     measurementId: "G-FLXL8JY7QD"
   };
   
-
 // ===== Admin UID =====
 const ADMIN_UID = "ItSmZryZgkcs6XEdmmpigz9ycih2";
 
@@ -221,6 +220,7 @@ sendForm.addEventListener("submit", async (e) => {
     const content = messageInput.value.trim();
     if (!content) throw new Error("Message cannot be empty");
 
+    // Save message WITHOUT requiring login
     await addDoc(collection(db, "messages"), {
       toUid,
       content,
