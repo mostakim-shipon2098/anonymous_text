@@ -28,9 +28,7 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 
 // Elements
-const yearEl = document.getElementById("year");
-yearEl.textContent = new Date().getFullYear();
-
+const yearEl = document.getElementById("year"); yearEl.textContent = new Date().getFullYear();
 const authSection = document.getElementById("authSection");
 const dashboardSection = document.getElementById("dashboardSection");
 const sendSection = document.getElementById("sendSection");
@@ -40,7 +38,6 @@ const navDashboard = document.getElementById("navDashboard");
 const navAdmin = document.getElementById("navAdmin");
 const navLogout = document.getElementById("navLogout");
 
-// Auth elements
 const authForm = document.getElementById("authForm");
 const displayNameInput = document.getElementById("displayName");
 const emailInput = document.getElementById("email");
@@ -49,21 +46,18 @@ const signupBtn = document.getElementById("signupBtn");
 const loginBtn = document.getElementById("loginBtn");
 const authError = document.getElementById("authError");
 
-// Dashboard
 const userName = document.getElementById("userName");
 const shareLinkInput = document.getElementById("shareLink");
 const copyLinkBtn = document.getElementById("copyLinkBtn");
 const messageList = document.getElementById("messageList");
 const emptyState = document.getElementById("emptyState");
 
-// Send page
 const sendForm = document.getElementById("sendForm");
 const messageInput = document.getElementById("messageInput");
 const sendBtn = document.getElementById("sendBtn");
 const sendStatus = document.getElementById("sendStatus");
 const sendError = document.getElementById("sendError");
 
-// Admin
 const adminSearch = document.getElementById("adminSearch");
 const refreshAdmin = document.getElementById("refreshAdmin");
 const adminList = document.getElementById("adminList");
@@ -73,8 +67,7 @@ let unsubInbox = null;
 
 // ---------- Routing ----------
 window.addEventListener("hashchange", handleRoute);
-handleRoute(); // initial
-
+handleRoute();
 function handleRoute() {
   const hash = location.hash || "";
   const match = hash.match(/^#\/u\/([A-Za-z0-9_-]{6,})$/);
@@ -82,6 +75,7 @@ function handleRoute() {
   if (match) {
     showOnly(sendSection);
     sendSection.dataset.toUid = match[1];
+    prepareSendPage();
   } else {
     if (auth.currentUser) {
       showOnly(dashboardSection);
@@ -143,6 +137,7 @@ onAuthStateChanged(auth, (user) => {
   if (!user) {
     if (location.hash.includes("#/u/")) {
       showOnly(sendSection);
+      prepareSendPage();
     } else {
       showOnly(authSection);
     }
@@ -156,10 +151,9 @@ onAuthStateChanged(auth, (user) => {
   }
 });
 
-// Logout
 navLogout.addEventListener("click", async () => { await signOut(auth); });
 
-// ---------- Dashboard ----------
+// ---------- Dashboard (recipient sees messages anonymously) ----------
 async function loadDashboard() {
   const u = auth.currentUser;
   if (!u) return;
@@ -180,7 +174,6 @@ async function loadDashboard() {
     }
   };
 
-  // Inbox (recipient view only shows messages)
   if (unsubInbox) unsubInbox();
   const qInbox = query(
     collection(db, "messages"),
@@ -195,7 +188,6 @@ async function loadDashboard() {
       return;
     }
     emptyState.classList.add("hidden");
-
     snap.forEach(docSnap => {
       const m = docSnap.data();
       const li = document.createElement("li");
@@ -208,7 +200,18 @@ async function loadDashboard() {
   });
 }
 
-// ---------- Send Page ----------
+// ---------- Send Page (sender must be logged in) ----------
+function prepareSendPage() {
+  sendStatus.textContent = "";
+  sendError.textContent = "";
+  if (!auth.currentUser) {
+    showOnly(authSection); // redirect login if not logged in
+    alert("You must log in to send an anonymous message!");
+    return;
+  }
+  sendForm.classList.remove("hidden");
+}
+
 sendForm.addEventListener("submit", async (e) => {
   e.preventDefault();
   sendStatus.textContent = "";
@@ -219,19 +222,19 @@ sendForm.addEventListener("submit", async (e) => {
     const toUid = sendSection.dataset.toUid;
     const content = messageInput.value.trim();
     if (!content) throw new Error("Message cannot be empty");
+    if (!auth.currentUser) throw new Error("You must be logged in to send.");
 
-    // Save message WITHOUT requiring login
+    // Save message anonymously for recipient, but store sender info for admin
     await addDoc(collection(db, "messages"), {
       toUid,
       content,
       createdAt: serverTimestamp(),
-      fromUid: auth.currentUser?.uid || null,
-      fromEmail: auth.currentUser?.email || null
+      fromUid: auth.currentUser.uid,
+      fromEmail: auth.currentUser.email
     });
 
     messageInput.value = "";
     sendStatus.textContent = "Message sent ✅";
-
   } catch (err) {
     sendError.textContent = err.message;
   } finally {
@@ -239,7 +242,7 @@ sendForm.addEventListener("submit", async (e) => {
   }
 });
 
-// ---------- Admin ----------
+// ---------- Admin Panel ----------
 async function loadAdmin() {
   adminList.innerHTML = "";
   adminEmpty.classList.add("hidden");
@@ -278,10 +281,9 @@ async function loadAdmin() {
 
   if (count === 0) adminEmpty.classList.remove("hidden");
 }
-
 refreshAdmin.addEventListener("click", loadAdmin);
 
-// ---------- Utilities ----------
+// ---------- Utility ----------
 function escapeHTML(str) {
   return str.replace(/[&<>'"]/g, (c) => ({
     "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;"
