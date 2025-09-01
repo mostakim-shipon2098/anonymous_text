@@ -1,80 +1,30 @@
 :root {
-    --bg: #0b0f14;
-    --card: #111824;
-    --card-soft: #0f1520;
-    --text: #e6edf3;
-    --muted: #9aa7b2;
-    --primary: #4f8cff;
-    --danger: #ff5d5d;
-    --success: #3ddc97;
-    --border: #1f2a39;
-    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
-  }
-  
-  * { box-sizing: border-box; }
-  html, body {
-    margin: 0;
-    padding: 0;
-    color: var(--text);
-    background: linear-gradient(180deg, #070b10, #0b0f14 40%);
-    font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
-  }
-  
-  .container { max-width: 900px; margin: 80px auto 48px; padding: 0 16px; }
-  
-  .nav {
-    position: sticky; top: 0; z-index: 10;
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 12px 16px; background: rgba(11,15,20,0.8); backdrop-filter: blur(6px);
-    border-bottom: 1px solid var(--border);
-  }
-  .brand { font-weight: 700; }
-  .link { background: transparent; border: none; color: var(--text); cursor: pointer; padding: 8px 10px; }
-  .link:hover { opacity: 0.85; }
-  
-  .card {
-    background: var(--card); border: 1px solid var(--border);
-    border-radius: 16px; padding: 20px; margin-bottom: 20px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.25);
-  }
-  .card-soft {
-    background: var(--card-soft); border: 1px dashed var(--border);
-    border-radius: 12px; padding: 16px; margin: 12px 0;
-  }
-  
-  h2, h3 { margin: 0 0 12px; }
-  .muted { color: var(--muted); margin: 6px 0; }
-  .error { color: var(--danger); }
-  .success { color: var(--success); }
-  
-  input, textarea {
-    width: 100%; padding: 12px 14px; border-radius: 12px;
-    border: 1px solid var(--border); background: #0c121a; color: var(--text);
-    outline: none;
-  }
-  input.mono { font-family: var(--mono); font-size: 14px; }
-  
-  .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  @media (max-width: 720px) { .grid-2 { grid-template-columns: 1fr; } }
-  
-  .btn {
-    padding: 10px 14px; border-radius: 12px; border: 1px solid var(--border);
-    background: var(--primary); color: white; cursor: pointer; font-weight: 600;
-  }
-  .btn:hover { filter: brightness(1.05); }
-  .btn.ghost { background: transparent; }
-  .btn.danger { background: var(--danger); }
-  
-  .hidden { display: none !important; }
-  
-  .list { list-style: none; padding: 0; margin: 12px 0 0; }
-  .list li {
-    background: #0c121a; border: 1px solid var(--border); border-radius: 12px;
-    padding: 12px; margin-bottom: 10px;
-  }
-  .list .meta { font-size: 12px; color: var(--muted); margin-top: 6px; }
-  
-  .footer { text-align: center; color: var(--muted); padding: 30px 0; }
-  .share p { margin: 8px 0; }
-  
+  --bg: #0b0f14;
+  --card: #111824;
+  --card-soft: #0f1520;
+  --text: #e6edf3;
+  --muted: #9aa7b2;
+  --primary: #4f8cff;
+  --danger: #ff5d5d;
+  --success: #3ddc97;
+  --border: #1f2a39;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+* { box-sizing: border-box; }
+body { margin:0; padding:0; font-family: Inter, sans-serif; color: var(--text); background: var(--bg); }
+.container { max-width: 800px; margin: 80px auto; padding: 0 16px; }
+.card { background: var(--card); border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+.hidden { display: none !important; }
+input, textarea { width:100%; padding:10px; border-radius:8px; border:1px solid var(--border); background:#0c121a; color:var(--text); margin:5px 0; }
+button { padding:10px 14px; border:none; border-radius:8px; background:var(--primary); color:white; cursor:pointer; margin-top:5px; }
+button.ghost { background:transparent; border:1px solid var(--primary); }
+button.danger { background:var(--danger); }
+.row { display:flex; gap:10px; flex-wrap:wrap; }
+.list { list-style:none; padding:0; }
+.list li { background:#0c121a; padding:10px; border-radius:8px; margin-bottom:8px; border:1px solid var(--border); }
+.mono { font-family: var(--mono); }
+.error { color: var(--danger); }
+.success { color: var(--success); }
+.muted { color: var(--muted); }
+.footer { text-align:center; color: var(--muted); margin-top:40px; }
